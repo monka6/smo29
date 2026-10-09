@@ -1,0 +1,186 @@
+@startuml
+title Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #FEFECE
+skinparam classBorderColor #A80036
+
+' ========== LOG ENTRY ==========
+class LogEntry {
+  - id: int
+  - sourceId: int
+  - message: string
+  - createdAt: double
+  - startProcessingAt: double
+  - endProcessingAt: double
+  --
+  + getId(): int
+  + getSourceId(): int
+  + getCreatedAt(): double
+  + setStartProcessing(t: double): void
+  + setEndProcessing(t: double): void
+  + getWaitingTime(): double
+  + getProcessingTime(): double
+  + getTotalTime(): double
+}
+
+' ========== SOURCE ==========
+class Source {
+  - id: int
+  - lambda: double
+  - nextGenerationTime: double
+  - generatedCount: int
+  - dispatcher: PostDispatcher
+  --
+  + generateLog(currentTime: double): LogEntry
+  + getNextTime(): double
+  + getGeneratedCount(): int
+}
+
+' ========== BUFFER ==========
+class Buffer {
+  - capacity: int
+  - slots: LogEntry[]
+  - writePointer: int
+  - readPointer: int
+  - occupiedCount: int
+  - rejectedCount: int
+  --
+  + hasFreeSlot(): bool
+  + hasLogs(): bool
+  + putLog(log: LogEntry): bool
+  + findOldestSlot(): int
+  + removeOldest(): LogEntry
+  + getLog(): LogEntry
+  + getWritePointer(): int
+  + getReadPointer(): int
+  + getRejectedCount(): int
+}
+
+' ========== POST DISPATCHER ==========
+class PostDispatcher {
+  - buffer: Buffer
+  --
+  + acceptLog(log: LogEntry): bool
+  + pushToBuffer(log: LogEntry): bool
+  + rejectOldest(): LogEntry
+}
+
+' ========== PICK DISPATCHER ==========
+class PickDispatcher {
+  - buffer: Buffer
+  - handlers: Handler[]
+  - handlerPointer: int
+  --
+  + findFreeHandler(): Handler
+  + pickLogFromBuffer(): LogEntry
+  + assignLogToHandler(log: LogEntry): void
+  + getHandlerPointer(): int
+}
+
+' ========== HANDLER ==========
+class Handler {
+  - id: int
+  - isBusy: bool
+  - currentLog: LogEntry
+  - finishTime: double
+  - processedCount: int
+  - busyTime: double
+  - storage: Storage
+  --
+  + isFree(): bool
+  + startProcessing(log: LogEntry, t: double, serviceTime: double): void
+  + finishProcessing(): LogEntry
+  + saveToStorage(log: LogEntry): void
+  + getCurrentLog(): LogEntry
+  + getProcessedCount(): int
+  + getBusyTime(): double
+}
+
+' ========== STORAGE ==========
+class Storage {
+  - logs: LogEntry[]
+  - savedCount: int
+  --
+  + saveLog(log: LogEntry): void
+  + getLogsCount(): int
+  + getSavedCount(): int
+  + clear(): void
+}
+
+' ========== SOURCE STATS ==========
+class SourceStats {
+  - sourceId: int
+  - generated: int
+  - rejected: int
+  - totalWaitingTime: double
+  - totalProcessingTime: double
+  - totalTimeInSystem: double
+  --
+  + addGenerated(): void
+  + addRejected(): void
+  + addWaitingTime(t: double): void
+  + addProcessingTime(t: double): void
+  + getRejectProbability(): double
+  + getAverageWaitingTime(): double
+  + getAverageProcessingTime(): double
+  + getAverageTimeInSystem(): double
+}
+
+' ========== HANDLER STATS ==========
+class HandlerStats {
+  - handlerId: int
+  - processedCount: int
+  - busyTime: double
+  --
+  + addProcessed(): void
+  + addBusyTime(t: double): void
+  + getUtilization(): double
+}
+
+' ========== DISPLAY ==========
+class Display {
+  - sourceStats: SourceStats[]
+  - handlerStats: HandlerStats[]
+  --
+  + printStepState(time: double, buffer: Buffer, handlers: Handler[]): void
+  + printFinalStats(): void
+  + printGraphs(): void
+}
+
+' ========== MODEL ==========
+class Model {
+  - sources: Source[]
+  - buffer: Buffer
+  - handlers: Handler[]
+  - storage: Storage
+  - postDispatcher: PostDispatcher
+  - pickDispatcher: PickDispatcher
+  - display: Display
+  - currentTime: double
+  --
+  + init(): void
+  + step(): void
+  + run(): void
+  + collectStatistics(): void
+}
+
+' ========== RELATIONS ==========
+Source --> "1" PostDispatcher : помещает заявки
+PostDispatcher --> "1" Buffer : управляет (Д1031, Д10О3)
+PickDispatcher --> "1" Buffer : выбирает заявки (Д2Б3)
+PickDispatcher --> "*" Handler : назначает обработчикам (Д2П2)
+Buffer --> "*" LogEntry : хранит
+Handler --> "0..1" LogEntry : обрабатывает
+Handler --> "1" Storage : сохраняет логи
+Model --> "*" Source : управляет
+Model --> "1" Buffer : управляет
+Model --> "*" Handler : управляет
+Model --> "1" Storage : управляет
+Model --> "1" PostDispatcher : управляет
+Model --> "1" PickDispatcher : управляет
+Model --> "1" Display : управляет
+Display --> "*" SourceStats : собирает
+Display --> "*" HandlerStats : собирает
+
+@enduml
