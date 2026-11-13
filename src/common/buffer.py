@@ -17,7 +17,6 @@ class Buffer:
         if not self.has_free_slot():
             return False
         
-        # Д1031: Поиск свободного места по кольцу
         while self.slots[self.write_pointer] is not None:
             self.write_pointer = (self.write_pointer + 1) % self.capacity
         
@@ -27,7 +26,6 @@ class Buffer:
         return True
 
     def find_oldest_slot(self):
-        # Д10О3: Поиск самого старого
         oldest_idx = -1
         oldest_time = float('inf')
         for i, log in enumerate(self.slots):
@@ -50,7 +48,6 @@ class Buffer:
         if not self.has_logs():
             return None
         
-        # Д2Б3: Поиск занятого места по кольцу
         while self.slots[self.read_pointer] is None:
             self.read_pointer = (self.read_pointer + 1) % self.capacity
             

@@ -5,7 +5,6 @@ def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 if __name__ == "__main__":
-    # Создаем модель (буфер 3, 2 источника, 2 прибора)
     model = Model(
         buffer_capacity=3, 
         sources_params=[0.5, 0.3], 
@@ -29,7 +28,6 @@ if __name__ == "__main__":
             
         step_count += 1
 
-    # Итоги
     print("\n=== ИТОГИ МОДЕЛИРОВАНИЯ ===")
     print(f"Всего шагов (событий): {step_count}")
     print(f"Сгенерировано логов: {sum(s.generated_count for s in model.sources)}")

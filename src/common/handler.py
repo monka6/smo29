@@ -16,7 +16,6 @@ class Handler:
         self.current_log = log
         log.set_start_processing(current_time)
         
-        # ПЗ1: Экспоненциальное время обслуживания
         service_time = random.expovariate(self.mu_val)
         self.finish_time = current_time + service_time
         return self.finish_time

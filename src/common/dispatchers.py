@@ -8,7 +8,6 @@ class PostDispatcher:
             self.buffer.put_log(log)
             return True, None
         else:
-            # Переполнение (Д10О3)
             evicted = self.buffer.remove_oldest()
             self.rejected_count += 1
             self.buffer.put_log(log)
@@ -18,10 +17,9 @@ class PickDispatcher:
     def __init__(self, buffer, handlers):
         self.buffer = buffer
         self.handlers = handlers
-        self.handler_pointer = 0  # УП
+        self.handler_pointer = 0  
 
     def find_free_handler(self):
-        # Д2П2: Поиск свободного прибора по кольцу
         for _ in range(len(self.handlers)):
             handler = self.handlers[self.handler_pointer]
             if handler.is_free():

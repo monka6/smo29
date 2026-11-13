@@ -88,32 +88,17 @@ class Model:
             else:
                 action_text = f"{picked_log} назначен на П{free_handler.id} (Д2Б3, Д2П2)"
 
-        # 3. Вывод Календаря событий (ОД2)
         self.print_event(event_text, action_text)
         return True
 
     def print_event(self, event_text, action_text):
-        # Разделитель для красоты
         print("-" * 60)
-        
-        # Время и событие
         print(f"[t ={self.current_time:>7.3f}] СОБЫТИЕ: {event_text}")
-        
-        # Действие
         print(f"          ДЕЙСТВИЕ: {action_text}")
-        
-        # Состояние системы
         buffer_str = self.buffer.get_state_str()
         print(f"          БУФЕР: {buffer_str} (занято {self.buffer.occupied_count}/{self.buffer.capacity})")
-        
-        # Указатели
         print(f"          УКАЗАТЕЛИ: УБ={self.buffer.write_pointer} | УВ={self.buffer.read_pointer} | УП={self.pick_dispatcher.handler_pointer}")
-        
-        # Приборы
         h_states = " | ".join([h.get_state_str() for h in self.handlers])
         print(f"          ПРИБОРЫ: {h_states}")
-        
-        # Отказы
         print(f"          ОТКАЗОВ: {self.total_rejected}")
-        
-        print() # Пустая строка для отступа
+        print() 
