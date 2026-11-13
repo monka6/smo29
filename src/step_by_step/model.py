@@ -2,7 +2,6 @@ import sys
 import os
 import random
 
-# Добавляем путь к папке src, чтобы Питон видел папку common
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from common.buffer import Buffer
@@ -13,30 +12,23 @@ from common.dispatchers import PostDispatcher, PickDispatcher
 class Model:
     def __init__(self, buffer_capacity, sources_params, handlers_params):
         self.current_time = 0.0
-        
-        # Настройка компонентов
         self.buffer = Buffer(capacity=buffer_capacity)
         self.sources = [Source(i+1, lambda_val=lam) for i, lam in enumerate(sources_params)]
         self.handlers = [Handler(i+1, mu_val=mu) for i, mu in enumerate(handlers_params)]
-        
         self.post_dispatcher = PostDispatcher(self.buffer)
         self.pick_dispatcher = PickDispatcher(self.buffer, self.handlers)
         
-        # Инициализация первых событий
         for src in self.sources:
             src.next_generation_time = random.expovariate(src.lambda_val)
             
-        # Статистика
         self.total_rejected = 0
         self.total_processed = 0
         self.total_waiting_time = 0.0
 
     def get_next_event(self):
         events = []
-        # События от источников
         for src in self.sources:
             events.append((src.next_generation_time, 'GEN', src))
-        # События от приборов
         for h in self.handlers:
             if h.is_busy:
                 events.append((h.finish_time, 'FIN', h))
@@ -57,7 +49,6 @@ class Model:
         event_text = ""
         action_text = ""
 
-        # 1. Обработка события
         if event_type == 'GEN':
             log = obj.generate_log(self.current_time)
             event_text = f"Лог от И{obj.id} (t={self.current_time:.2f})"
@@ -76,7 +67,6 @@ class Model:
             self.total_waiting_time += log.get_waiting_time()
             action_text = f"Обработка завершена"
             
-        # 2. Триггер выбора из буфера
         while self.buffer.has_logs():
             free_handler = self.pick_dispatcher.find_free_handler()
             if not free_handler:
