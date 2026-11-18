@@ -155,6 +155,9 @@ class Model {
   - pickDispatcher: PickDispatcher
   - display: Display
   - currentTime: double
+  - totalProcessed: int
+  - totalWaitingTime: double
+  - totalTimeInSystem: double
   --
   + init(): void
   + step(): bool

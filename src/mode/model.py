@@ -11,10 +11,11 @@ from common.dispatchers import PostDispatcher, PickDispatcher
 from common.storage import Storage
 
 class Model:
-    def __init__(self, buffer_capacity, sources_params, handlers_params):
+    def __init__(self, buffer_capacity, sources_params, handlers_params, verbose=True):
         self.current_time = 0.0
         self.buffer = Buffer(capacity=buffer_capacity)
         self.storage = Storage()
+        self.verbose = verbose
         self.sources = [Source(i+1, lambda_val=lam) for i, lam in enumerate(sources_params)]
         self.handlers = [Handler(i+1, mu_val=mu, storage=self.storage) for i, mu in enumerate(handlers_params)]
         self.post_dispatcher = PostDispatcher(self.buffer)
@@ -25,6 +26,7 @@ class Model:
             
         self.total_processed = 0
         self.total_waiting_time = 0.0
+        self.total_time_in_system = 0.0
 
     def get_next_event(self):
         events = []
@@ -67,6 +69,7 @@ class Model:
             event_text = f"Прибор {obj.id} закончил {log} (t={self.current_time:.2f})"
             self.total_processed += 1
             self.total_waiting_time += log.get_waiting_time()
+            self.total_time_in_system += (log.end_processing_at - log.created_at)
             action_text = f"Обработка завершена"
             
         while self.buffer.has_logs():
@@ -81,8 +84,11 @@ class Model:
             else:
                 action_text = f"{picked_log} назначен на П{free_handler.id} (Д2Б3, Д2П2)"
 
-        self.print_event(event_text, action_text)
+        if self.verbose: 
+            self.print_event(event_text, action_text)
+            
         return True
+    
 
     def print_event(self, event_text, action_text):
         print("-" * 60)
