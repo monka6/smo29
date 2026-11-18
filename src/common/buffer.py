@@ -2,10 +2,9 @@ class Buffer:
     def __init__(self, capacity):
         self.capacity = capacity
         self.slots = [None] * capacity
-        self.write_pointer = 0  # УБ
-        self.read_pointer = 0   # УВ
+        self.write_pointer = 0 
+        self.read_pointer = 0   
         self.occupied_count = 0
-        self.rejected_count = 0
 
     def has_free_slot(self):
         return self.occupied_count < self.capacity
@@ -40,7 +39,6 @@ class Buffer:
             oldest_log = self.slots[idx]
             self.slots[idx] = None
             self.occupied_count -= 1
-            self.rejected_count += 1
             return oldest_log
         return None
 
@@ -56,6 +54,12 @@ class Buffer:
         self.occupied_count -= 1
         self.read_pointer = (self.read_pointer + 1) % self.capacity
         return log
+
+    def get_write_pointer(self):
+        return self.write_pointer
+
+    def get_read_pointer(self):
+        return self.read_pointer
 
     def get_state_str(self):
         return "[" + ", ".join(str(s) if s else " _ " for s in self.slots) + "]"

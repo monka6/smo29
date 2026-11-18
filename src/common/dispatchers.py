@@ -1,7 +1,6 @@
 class PostDispatcher:
     def __init__(self, buffer):
         self.buffer = buffer
-        self.rejected_count = 0
 
     def accept_log(self, log):
         if self.buffer.has_free_slot():
@@ -9,7 +8,6 @@ class PostDispatcher:
             return True, None
         else:
             evicted = self.buffer.remove_oldest()
-            self.rejected_count += 1
             self.buffer.put_log(log)
             return False, evicted
 
@@ -27,3 +25,9 @@ class PickDispatcher:
                 return handler
             self.handler_pointer = (self.handler_pointer + 1) % len(self.handlers)
         return None
+    
+    def pick_log_from_buffer(self):
+        return self.buffer.get_log()
+
+    def get_handler_pointer(self):
+        return self.handler_pointer

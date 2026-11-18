@@ -7,8 +7,8 @@ def clear_screen():
 if __name__ == "__main__":
     model = Model(
         buffer_capacity=3, 
-        sources_params=[0.5, 0.3], 
-        handlers_params=[0.4, 0.4] 
+        sources_params=[2.0, 2.0], 
+        handlers_params=[0.5, 0.5] 
     )
     
     print("=== СИМУЛЯЦИЯ СЕРВИСА СБОРА ЛОГОВ (ПОШАГОВЫЙ РЕЖИМ) ===")
@@ -20,8 +20,7 @@ if __name__ == "__main__":
     while step_count < max_steps:
         user_input = input("Нажмите Enter...")
         if user_input.lower() == 'q':
-            break
-            
+            break        
         if not model.step():
             print("Больше нет событий.")
             break
@@ -30,9 +29,19 @@ if __name__ == "__main__":
 
     print("\n=== ИТОГИ МОДЕЛИРОВАНИЯ ===")
     print(f"Всего шагов (событий): {step_count}")
-    print(f"Сгенерировано логов: {sum(s.generated_count for s in model.sources)}")
-    print(f"Обработано логов: {model.total_processed}")
-    print(f"Отказов (потеряно): {model.total_rejected}")
+    
+    total_generated = sum(s.get_generated_count() for s in model.sources)
+    print(f"Сгенерировано логов: {total_generated}")
+    print(f"Обработано логов (всего): {model.total_processed}")
+    print(f"Сохранено в Storage: {model.storage.get_saved_count()}")
+    
+    total_rejected = sum(s.get_rejected_count() for s in model.sources)
+    print(f"Отказов (потеряно): {total_rejected}")
+    
+    for s in model.sources:
+        if s.get_rejected_count() > 0:
+            print(f"  - Отказов у Источника {s.id}: {s.get_rejected_count()}")
+
     if model.total_processed > 0:
         avg_wait = model.total_waiting_time / model.total_processed
         print(f"Среднее время ожидания: {avg_wait:.3f} мс")

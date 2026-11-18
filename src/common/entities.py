@@ -7,6 +7,15 @@ class LogEntry:
         self.start_processing_at = None
         self.end_processing_at = None
 
+    def get_id(self):
+        return self.id
+
+    def get_source_id(self):
+        return self.source_id
+
+    def get_created_at(self):
+        return self.created_at
+
     def set_start_processing(self, t):
         self.start_processing_at = t
 

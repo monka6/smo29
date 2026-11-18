@@ -30,11 +30,12 @@ class Source {
   - lambda: double
   - nextGenerationTime: double
   - generatedCount: int
-  - dispatcher: PostDispatcher
+  - rejectedCount: int
   --
   + generateLog(currentTime: double): LogEntry
   + getNextTime(): double
   + getGeneratedCount(): int
+  + getRejectedCount(): int
 }
 
 ' ========== BUFFER ==========
@@ -44,7 +45,6 @@ class Buffer {
   - writePointer: int
   - readPointer: int
   - occupiedCount: int
-  - rejectedCount: int
   --
   + hasFreeSlot(): bool
   + hasLogs(): bool
@@ -54,7 +54,7 @@ class Buffer {
   + getLog(): LogEntry
   + getWritePointer(): int
   + getReadPointer(): int
-  + getRejectedCount(): int
+  + getStateStr(): string
 }
 
 ' ========== POST DISPATCHER ==========
@@ -62,8 +62,6 @@ class PostDispatcher {
   - buffer: Buffer
   --
   + acceptLog(log: LogEntry): bool
-  + pushToBuffer(log: LogEntry): bool
-  + rejectOldest(): LogEntry
 }
 
 ' ========== PICK DISPATCHER ==========
@@ -74,7 +72,6 @@ class PickDispatcher {
   --
   + findFreeHandler(): Handler
   + pickLogFromBuffer(): LogEntry
-  + assignLogToHandler(log: LogEntry): void
   + getHandlerPointer(): int
 }
 
@@ -160,13 +157,14 @@ class Model {
   - currentTime: double
   --
   + init(): void
-  + step(): void
+  + step(): bool
+  + getNextEvent(): tuple
   + run(): void
   + collectStatistics(): void
 }
 
 ' ========== RELATIONS ==========
-Source --> "1" PostDispatcher : помещает заявки
+Source ..> "1" PostDispatcher : помещает заявки
 PostDispatcher --> "1" Buffer : управляет (Д1031, Д10О3)
 PickDispatcher --> "1" Buffer : выбирает заявки (Д2Б3)
 PickDispatcher --> "*" Handler : назначает обработчикам (Д2П2)

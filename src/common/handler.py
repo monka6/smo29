@@ -1,12 +1,15 @@
 import random
 
 class Handler:
-    def __init__(self, handler_id, mu_val):
+    def __init__(self, handler_id, mu_val, storage):
         self.id = handler_id
         self.mu_val = mu_val
+        self.storage = storage
         self.is_busy = False
         self.current_log = None
         self.finish_time = 0.0
+        self.processed_count = 0
+        self.busy_time = 0.0
 
     def is_free(self):
         return not self.is_busy
@@ -24,9 +27,23 @@ class Handler:
         log = self.current_log
         if log:
             log.set_end_processing(self.finish_time)
+            self.processed_count += 1
+            self.busy_time += (self.finish_time - log.start_processing_at)
+            self.save_to_storage(log)
         self.is_busy = False
         self.current_log = None
         return log
+    def save_to_storage(self, log):
+        self.storage.save_log(log)
+
+    def get_processed_count(self):
+        return self.processed_count
+
+    def get_busy_time(self):
+        return self.busy_time
+
+    def get_current_log(self):
+        return self.current_log
 
     def get_state_str(self):
         return f"H{self.id}(зан.до {self.finish_time:.2f})" if self.is_busy else f"H{self.id}(своб)"
