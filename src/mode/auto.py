@@ -147,8 +147,8 @@ def run_final_simulation(num_handlers, num_events, num_sources=2, buffer_capacit
 if __name__ == "__main__":
     print("АВТОМАТИЧЕСКИЙ РЕЖИМ")
 
-    num_sources = 2       
-    num_handlers = 3      
+    num_sources = 15       
+    num_handlers = 10      
     buffer_capacity = 5   
 
     print(f"\nКонфигурация: источников={num_sources}, приборов={num_handlers}, "
