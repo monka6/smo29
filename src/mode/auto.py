@@ -69,7 +69,7 @@ def find_required_n(num_handlers, initial_n=500, max_n=200000, buffer_capacity=5
         if prev_p is not None:
             diff = abs(p_current - prev_p)
             threshold = 0.1 * p_current
-            print(f"  Разница = {diff:.4f} (порог 10% от p_current = {threshold:.4f})")
+            print(f"  Разница = {diff:.4f}")
             
             if diff < threshold:
                 print(f"Точность достигнута на N = {current_n}\n")
