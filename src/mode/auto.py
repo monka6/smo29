@@ -64,7 +64,7 @@ def find_required_n(num_handlers, initial_n=500, max_n=200000, buffer_capacity=5
         
         p_current = sum_rej / sum_gen if sum_gen > 0 else 0.0
         
-        print(f"  N = {current_n:>6} | Сгенерировано: {sum_gen:>6} | P_отк = {p_current:.4f} ({p_current*100:.2f}%)")
+        print(f"  N = {current_n:>6} P_отк = {p_current:.4f} ({p_current*100:.2f}%)")
         
         if prev_p is not None:
             diff = abs(p_current - prev_p)
@@ -123,28 +123,13 @@ def run_final_simulation(num_handlers, num_steps, buffer_capacity=5):
     return avg_time, global_p_rej, utilization
 
 if __name__ == "__main__":
-    print("=== АВТОМАТИЧЕСКИЙ РЕЖИМ (ОР2) ===")
+    print("АВТОМАТИЧЕСКИЙ РЕЖИМ")
     
     num_handlers = 3
     print(f"Тестирование конфигурации с {num_handlers} приборами...\n")
     
     p_final, n_final = find_required_n(num_handlers=num_handlers)
     
-    print(f"Запуск ФИНАЛЬНОГО моделирования с N = {n_final}...")
     t, r, u = run_final_simulation(num_handlers=num_handlers, num_steps=n_final)
     
-    print("\nПостроение графика...")
-    output_dir = "mode/graphs"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
     
-    plt.figure(figsize=(6, 4))
-    plt.bar(["3 прибора"], [r], color='r', width=0.4)
-    plt.title('Вероятность отказа для 3 приборов')
-    plt.ylabel('P_отк')
-    plt.ylim(0, 1)
-    plt.grid(axis='y')
-    plt.savefig(f"{output_dir}/graph_reject_3.png", dpi=300, bbox_inches='tight')
-    plt.show()
-    
-    print("Готово! График сохранен в папке", output_dir)
