@@ -33,138 +33,118 @@ def print_statistics_tables(model):
         print(f"П{h.id:<7} | {processed:<12} | {k_util:<8.3f} | {h.get_busy_time():<20.3f}")
     print("="*80 + "\n")
 
-def run_simulation(num_handlers, buffer_capacity=5, num_steps=2000, num_runs=20):
-    sum_time = 0
-    sum_reject_prob = 0
-    sum_utilization = 0
-
-    lambda_val = 0.8 
-    mu_val = 0.5      
-
-    last_model = None
-
-    for _ in range(num_runs):
-        model = Model(
-            buffer_capacity=buffer_capacity,
-            sources_params=[lambda_val, lambda_val],
-            handlers_params=[mu_val] * num_handlers,
-            verbose=False 
-        )
-        
-        for _ in range(num_steps):
-            if not model.step():
-                break
-        
-        last_model = model
-        
-        if model.total_processed > 0:
-            sum_time += model.total_time_in_system / model.total_processed
-        
-        total_gen = sum(s.get_generated_count() for s in model.sources)
-        total_rej = sum(s.get_rejected_count() for s in model.sources)
-        if total_gen > 0:
-            sum_reject_prob += total_rej / total_gen
-            
-        total_busy = 0
-        for h in model.handlers:
-            busy = h.get_busy_time() 
-            if h.is_busy:
-                busy += (model.current_time - h.current_log.start_processing_at)
-            total_busy += busy
-            
-        if model.current_time > 0:
-            sum_utilization += total_busy / (num_handlers * model.current_time)
-
-    if last_model:
-        total_gen = sum(s.get_generated_count() for s in last_model.sources)
-        total_rej = sum(s.get_rejected_count() for s in last_model.sources)
-        total_proc = last_model.total_processed
-        global_p_rej = total_rej / total_gen if total_gen > 0 else 0.0
-        
-        sum_lambda = sum(s.lambda_val for s in last_model.sources)
-        sum_mu = sum(h.mu_val for h in last_model.handlers)
-        rho = sum_lambda / sum_mu if sum_mu > 0 else 0.0
-        
-        print("\n" + "="*80)
-        print("МОДЕЛИРОВАНИЕ ЗАВЕРШЕНО")
-        print(f"Время моделирования: {last_model.current_time:.3f} | Шагов: {num_steps}")
-        print(f"Заявок: создано {total_gen}; обслужено {total_proc}; отказано {total_rej}; P_отк = {global_p_rej*100:.2f}%")
-        print(f"Оценка входной нагрузки rho = Lambda/Mu = {rho:.3f}")
-        print("Дисперсии выборочные (деление на n-1), при n<2 отображается 0.")
-        print("="*80 + "\n")
-        
-        print_statistics_tables(last_model)
-
-        return (sum_time / num_runs, 
-            sum_reject_prob / num_runs, 
-            sum_utilization / num_runs)
-
-
-if __name__ == "__main__":
-    print("АВТОМАТИЧЕСКИЙ РЕЖИМ")
+def find_required_n(num_handlers, initial_n=500, max_n=200000, buffer_capacity=5, num_runs=20):
+    lambda_val = 0.8
+    mu_val = 0.5
+    
+    current_n = initial_n
+    prev_p = None
+    
+    print(f"\n--- Поиск требуемого N для {num_handlers} приборов (старт с N={initial_n}) ---")
     
     while True:
-        try:
-            min_h = int(input("Введите минимальное количество приборов (например, 1): "))
-            max_h = int(input("Введите максимальное количество приборов (например, 5): "))
+        sum_rej = 0
+        sum_gen = 0
+        
+        for _ in range(num_runs):
+            model = Model(
+                buffer_capacity=buffer_capacity,
+                sources_params=[lambda_val, lambda_val],
+                handlers_params=[mu_val] * num_handlers,
+                verbose=False
+            )
+            for _ in range(current_n):
+                if not model.step():
+                    break
             
-            if min_h < 1:
-                print("Ошибка: минимальное количество приборов должно быть >= 1.")
-                continue
-            if max_h < min_h:
-                print("Ошибка: максимальное значение должно быть >= минимального.")
-                continue
-                
-            break 
+            total_gen = sum(s.get_generated_count() for s in model.sources)
+            total_rej = sum(s.get_rejected_count() for s in model.sources)
+            sum_gen += total_gen
+            sum_rej += total_rej
+        
+        p_current = sum_rej / sum_gen if sum_gen > 0 else 0.0
+        
+        print(f"  N = {current_n:>6} | Сгенерировано: {sum_gen:>6} | P_отк = {p_current:.4f} ({p_current*100:.2f}%)")
+        
+        if prev_p is not None:
+            diff = abs(p_current - prev_p)
+            threshold = 0.1 * p_current
+            print(f"  Разница = {diff:.4f} (порог 10% от p_current = {threshold:.4f})")
             
-        except ValueError:
-            print("Ошибка: пожалуйста, вводите целые числа.")
+            if diff < threshold:
+                print(f"Точность достигнута на N = {current_n}\n")
+                return p_current, current_n
+        
+        prev_p = p_current
+        current_n *= 2
+        
+        if current_n > max_n:
+            print(f"Достигнут лимит N = {max_n}. Останавливаемся.\n")
+            return p_current, current_n
 
-    handlers_range = list(range(min_h, max_h + 1))
+def run_final_simulation(num_handlers, num_steps, buffer_capacity=5):
+    lambda_val = 0.8
+    mu_val = 0.5
     
-    times = []
-    rejects = []
-    utils = []
-
-    print(f"\nЗапуск автоматического режима для конфигураций: {handlers_range}...")
-    for n in handlers_range:
-        print(f"  Тестирование конфигурации с {n} приборами...")
-        t, r, u = run_simulation(num_handlers=n)
-        times.append(t)
-        rejects.append(r)
-        utils.append(u)
-
-    print("\nПостроение графиков...")
+    model = Model(
+        buffer_capacity=buffer_capacity,
+        sources_params=[lambda_val, lambda_val],
+        handlers_params=[mu_val] * num_handlers,
+        verbose=False 
+    )
     
+    for _ in range(num_steps):
+        if not model.step():
+            break
+            
+    print("\n" + "="*80)
+    print("ФИНАЛЬНОЕ МОДЕЛИРОВАНИЕ ЗАВЕРШЕНО")
+    print(f"Время моделирования: {model.current_time:.3f} | Шагов: {num_steps}")
+    
+    total_gen = sum(s.get_generated_count() for s in model.sources)
+    total_rej = sum(s.get_rejected_count() for s in model.sources)
+    total_proc = model.total_processed
+    global_p_rej = total_rej / total_gen if total_gen > 0 else 0.0
+    
+    sum_lambda = sum(s.lambda_val for s in model.sources)
+    sum_mu = sum(h.mu_val for h in model.handlers)
+    rho = sum_lambda / sum_mu if sum_mu > 0 else 0.0
+    
+    print(f"Заявок: создано {total_gen}; обслужено {total_proc}; отказано {total_rej}")
+    print(f"Оценка входной нагрузки rho = Lambda/Mu = {rho:.3f}")
+    print("="*80 + "\n")
+    
+    print_statistics_tables(model)
+    
+    avg_time = model.total_time_in_system / total_proc if total_proc > 0 else 0.0
+    total_busy = sum(h.get_busy_time() for h in model.handlers)
+    utilization = total_busy / (num_handlers * model.current_time) if model.current_time > 0 else 0.0
+    
+    return avg_time, global_p_rej, utilization
+
+if __name__ == "__main__":
+    print("=== АВТОМАТИЧЕСКИЙ РЕЖИМ (ОР2) ===")
+    
+    num_handlers = 3
+    print(f"Тестирование конфигурации с {num_handlers} приборами...\n")
+    
+    p_final, n_final = find_required_n(num_handlers=num_handlers)
+    
+    print(f"Запуск ФИНАЛЬНОГО моделирования с N = {n_final}...")
+    t, r, u = run_final_simulation(num_handlers=num_handlers, num_steps=n_final)
+    
+    print("\nПостроение графика...")
     output_dir = "mode/graphs"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-
-    plt.figure(figsize=(8, 5))
-    plt.plot(handlers_range, times, marker='o', color='b', linestyle='-')
-    plt.title('Зависимость среднего времени пребывания (T_сист) от числа приборов')
-    plt.xlabel('Количество приборов (шт.)')
-    plt.ylabel('T_сист (среднее)')
-    plt.grid(True)
-    plt.savefig(f"{output_dir}/graph_time.png", dpi=300, bbox_inches='tight')
-    plt.show()
-
-    plt.figure(figsize=(8, 5))
-    plt.plot(handlers_range, rejects, marker='s', color='r', linestyle='-')
-    plt.title('Зависимость вероятности отказа (P_отк) от числа приборов')
-    plt.xlabel('Количество приборов (шт.)')
+    
+    plt.figure(figsize=(6, 4))
+    plt.bar(["3 прибора"], [r], color='r', width=0.4)
+    plt.title('Вероятность отказа для 3 приборов')
     plt.ylabel('P_отк')
-    plt.grid(True)
-    plt.savefig(f"{output_dir}/graph_reject.png", dpi=300, bbox_inches='tight')
-    plt.show()
-
-    plt.figure(figsize=(8, 5))
-    plt.plot(handlers_range, utils, marker='^', color='g', linestyle='-')
-    plt.title('Зависимость коэффициента использования (K_исп) от числа приборов')
-    plt.xlabel('Количество приборов (шт.)')
-    plt.ylabel('K_исп')
-    plt.grid(True)
-    plt.savefig(f"{output_dir}/graph_utilization.png", dpi=300, bbox_inches='tight')
+    plt.ylim(0, 1)
+    plt.grid(axis='y')
+    plt.savefig(f"{output_dir}/graph_reject_3.png", dpi=300, bbox_inches='tight')
     plt.show()
     
-    print("Готово! Графики сохранены в папке", output_dir)
+    print("Готово! График сохранен в папке", output_dir)

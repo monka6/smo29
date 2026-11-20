@@ -26,22 +26,3 @@ if __name__ == "__main__":
             break
             
         step_count += 1
-
-    print("\n=== ИТОГИ МОДЕЛИРОВАНИЯ ===")
-    print(f"Всего шагов (событий): {step_count}")
-    
-    total_generated = sum(s.get_generated_count() for s in model.sources)
-    print(f"Сгенерировано логов: {total_generated}")
-    print(f"Обработано логов (всего): {model.total_processed}")
-    print(f"Сохранено в Storage: {model.storage.get_saved_count()}")
-    
-    total_rejected = sum(s.get_rejected_count() for s in model.sources)
-    print(f"Отказов (потеряно): {total_rejected}")
-    
-    for s in model.sources:
-        if s.get_rejected_count() > 0:
-            print(f"  - Отказов у Источника {s.id}: {s.get_rejected_count()}")
-
-    if model.total_processed > 0:
-        avg_wait = model.total_waiting_time / model.total_processed
-        print(f"Среднее время ожидания: {avg_wait:.3f} мс")
