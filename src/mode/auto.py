@@ -6,9 +6,9 @@ from mode.model import Model
 
 
 def print_statistics_tables(model):
-    print("\n" + "="*110)
+  
     print("ТАБЛИЦА 1: ХАРАКТЕРИСТИКИ ИСТОЧНИКОВ ВС")
-    print("="*110)
+
     print(f"{'№ Ист.':<8} | {'Кол-во заявок':<14} | {'P_отк':<8} | {'T_преб':<8} | {'T_БП':<8} | {'T_обсл':<8} | {'Д_БП':<8} | {'Д_обсл':<8}")
     print("-" * 110)
     for s in model.sources:
@@ -21,17 +21,17 @@ def print_statistics_tables(model):
         d_obsl = s.get_var_service_time()
 
         print(f"И{s.id:<7} | {n:<14} | {p_otk:<8.3f} | {t_preb:<8.3f} | {t_bp:<8.3f} | {t_obsl:<8.3f} | {d_bp:<8.3f} | {d_obsl:<8.3f}")
+    print()
 
-    print("\n" + "="*80)
-    print("ТАБЛИЦА 2: ХАРАКТЕРИСТИКИ ПРИБОРОВ (ПЗ1)")
-    print("="*80)
+    print("ТАБЛИЦА 2: ХАРАКТЕРИСТИКИ ПРИБОРОВ")
+
     print(f"{'Прибор':<8} | {'Обработано':<12} | {'K_исп':<8} | {'Сум. время занятости':<20}")
     print("-" * 80)
     for h in model.handlers:
         processed = h.get_processed_count()
         k_util = h.get_busy_time() / model.current_time if model.current_time > 0 else 0.0
         print(f"П{h.id:<7} | {processed:<12} | {k_util:<8.3f} | {h.get_busy_time():<20.3f}")
-    print("="*80 + "\n")
+
 
 
 def find_required_n(num_handlers,
@@ -46,11 +46,11 @@ def find_required_n(num_handlers,
     current_n = initial_n
     prev_p = None
 
-    print("=" * 70)
+   
     print(f"ПОИСК N: источников={num_sources}, приборов={num_handlers}, "
           f"буфер={buffer_capacity}, Lambda={num_sources * lambda_val:.2f}, "
           f"Mu={num_handlers * mu_val:.2f}")
-    print("=" * 70)
+    
 
     while True:
         sum_rej = 0
@@ -110,8 +110,8 @@ def run_final_simulation(num_handlers, num_events, num_sources=2, buffer_capacit
             break
         processed_events += 1
 
-    print("=" * 80)
-    print("ФИНАЛЬНОЕ МОДЕЛИРОВАНИЕ ЗАВЕРШЕНО")
+
+
     print(f"Конфигурация: источников={num_sources}, приборов={num_handlers}, буфер={buffer_capacity}")
     print(f"Время моделирования: {model.current_time:.3f} | Событий обработано: {processed_events}")
 
@@ -131,8 +131,6 @@ def run_final_simulation(num_handlers, num_events, num_sources=2, buffer_capacit
     print(f"Заявок: создано {total_gen}; обслужено {total_proc}; отказано {total_rej}")
     print(f"       осталось в системе: {in_buffer + on_handlers} "
           f"(в буфере {in_buffer}, на приборах {on_handlers})")
-    print(f"Оценка входной нагрузки rho = Lambda/(m*Mu) = {rho:.3f}")
-    print("=" * 80 + "\n")
 
     print_statistics_tables(model)
 
@@ -147,10 +145,7 @@ def run_final_simulation(num_handlers, num_events, num_sources=2, buffer_capacit
 
 
 if __name__ == "__main__":
-    print("=" * 70)
     print("АВТОМАТИЧЕСКИЙ РЕЖИМ")
-    print("=" * 70)
-
 
     num_sources = 2       
     num_handlers = 3      
@@ -167,9 +162,7 @@ if __name__ == "__main__":
         buffer_capacity=buffer_capacity,
     )
 
-    print("=" * 70)
     print(f"РЕЗУЛЬТАТ ПОИСКА: N = {n_final} событий, P_отк = {p_final:.4f}")
-    print("=" * 70 + "\n")
 
     t, r, u = run_final_simulation(
         num_handlers=num_handlers,
