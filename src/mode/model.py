@@ -16,8 +16,10 @@ class Model:
         self.buffer = Buffer(capacity=buffer_capacity)
         self.storage = Storage()
         self.verbose = verbose
+        
         self.sources = [Source(i+1, lambda_val=lam) for i, lam in enumerate(sources_params)]
         self.handlers = [Handler(i+1, mu_val=mu, storage=self.storage) for i, mu in enumerate(handlers_params)]
+        
         self.post_dispatcher = PostDispatcher(self.buffer)
         self.pick_dispatcher = PickDispatcher(self.buffer, self.handlers)
         
@@ -46,8 +48,8 @@ class Model:
         if not next_event:
             return False
             
-        time, event_type, obj = next_event
-        self.current_time = time
+        event_time, event_type, obj = next_event
+        self.current_time = event_time
         
         event_text = ""
         action_text = ""
@@ -67,15 +69,25 @@ class Model:
         elif event_type == 'FIN':
             log = obj.finish_processing()
             event_text = f"Прибор {obj.id} закончил {log} (t={self.current_time:.2f})"
+            
             self.total_processed += 1
-            self.total_waiting_time += log.get_waiting_time()
-            self.total_time_in_system += (log.end_processing_at - log.created_at)
-            action_text = f"Обработка завершена"
+            time_in_system = log.end_processing_at - log.created_at
+            waiting_time = log.get_waiting_time()
+            service_time = log.get_processing_time()
+            
+            self.total_waiting_time += waiting_time
+            self.total_time_in_system += time_in_system
+            
+            source_of_log = self.sources[log.source_id - 1]
+            source_of_log.add_statistics(time_in_system, waiting_time, service_time)
+            
+            action_text = f"Обработка завершена, сохранено в Storage"
             
         while self.buffer.has_logs():
             free_handler = self.pick_dispatcher.find_free_handler()
             if not free_handler:
                 break 
+                
             picked_log = self.pick_dispatcher.pick_log_from_buffer()  
             free_handler.start_processing(picked_log, self.current_time)
             
@@ -88,7 +100,6 @@ class Model:
             self.print_event(event_text, action_text)
             
         return True
-    
 
     def print_event(self, event_text, action_text):
         print("-" * 60)
